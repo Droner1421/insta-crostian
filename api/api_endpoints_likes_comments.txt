@@ -1,0 +1,113 @@
+API ENDPOINTS COMPLETOS - LIKES Y COMENTARIOS
+
+Base URL: http://192.168.100.19:3000
+Prefijo: /api/dsm44/likes-comments
+
+================================================================================
+                                    LIKES
+================================================================================
+
+🔵 GET - Obtener todos los likes
+http://192.168.100.19:3000/api/dsm44/likes-comments/likes
+
+🔵 GET - Obtener like por ID
+http://192.168.100.19:3000/api/dsm44/likes-comments/likes/{id}
+
+🔵 GET - Obtener likes por foto
+http://192.168.100.19:3000/api/dsm44/likes-comments/likes/photo/{photo_id}
+
+🔵 GET - Obtener likes por usuario
+http://192.168.100.19:3000/api/dsm44/likes-comments/likes/user/{user_id}
+
+🟢 POST - Crear nuevo like
+http://192.168.100.19:3000/api/dsm44/likes-comments/likes
+Body JSON:
+{
+  "user_id": "usuario123",
+  "photo_id": "foto456",
+  "estado": "Activo"
+}
+
+🟡 PATCH - Actualizar like
+http://192.168.100.19:3000/api/dsm44/likes-comments/likes/{id}
+Body JSON:
+{
+  "estado": "Inactivo"
+}
+
+🔴 DELETE - Eliminar like
+http://192.168.100.19:3000/api/dsm44/likes-comments/likes/{id}
+
+================================================================================
+                                 COMENTARIOS
+================================================================================
+
+🔵 GET - Obtener todos los comentarios
+http://192.168.100.19:3000/api/dsm44/likes-comments/comments
+
+🔵 GET - Obtener comentario por ID
+http://192.168.100.19:3000/api/dsm44/likes-comments/comments/{id}
+
+🔵 GET - Obtener comentarios por foto
+http://192.168.100.19:3000/api/dsm44/likes-comments/comments/photo/{photo_id}
+
+🔵 GET - Obtener comentarios por usuario
+http://192.168.100.19:3000/api/dsm44/likes-comments/comments/user/{user_id}
+
+🟢 POST - Crear nuevo comentario
+http://192.168.100.19:3000/api/dsm44/likes-comments/comments
+Body JSON (Campos OBLIGATORIOS marcados con *):
+{
+  "user_id": "usuario123",     // * requerido - STRING (no number)
+  "photo_id": "foto456",       // * requerido - STRING (no number)
+  "comentario": "¡Hermosa foto!", // * requerido - STRING
+  "estado": "Activo"           // opcional - "Activo" o "Inactivo"
+}
+
+🟡 PATCH - Actualizar comentario
+http://192.168.100.19:3000/api/dsm44/likes-comments/comments/{id}
+Body JSON:
+{
+  "comentario": "¡Foto increíble!"
+}
+
+🔴 DELETE - Eliminar comentario
+http://192.168.100.19:3000/api/dsm44/likes-comments/comments/{id}
+
+================================================================================
+                               EJEMPLOS PRÁCTICOS
+================================================================================
+
+Para una foto de Unsplash con ID "abc123":
+
+Ver likes de la foto:
+http://192.168.100.19:3000/api/dsm44/likes-comments/likes/photo/abc123
+
+Ver comentarios de la foto:
+http://192.168.100.19:3000/api/dsm44/likes-comments/comments/photo/abc123
+
+Dar like a la foto:
+POST http://192.168.100.19:3000/api/dsm44/likes-comments/likes
+{
+  "user_id": "mi_usuario",
+  "photo_id": "abc123"
+}
+
+Comentar en la foto:
+POST http://192.168.100.19:3000/api/dsm44/likes-comments/comments
+{
+  "user_id": "mi_usuario",
+  "photo_id": "abc123",
+  "comentario": "¡Me encanta esta foto!"
+}
+
+================================================================================
+                               NOTAS IMPORTANTES
+================================================================================
+
+• Reemplaza {id}, {photo_id}, {user_id} con valores reales
+• Los IDs de fotos deben corresponder con los IDs de Unsplash
+• Los user_id son strings que identifican a tus usuarios
+• La API valida los datos automáticamente
+• Las tablas se crean automáticamente en MySQL con synchronize: true
+• Todas las respuestas incluyen validación y manejo de errores

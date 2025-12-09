@@ -1,0 +1,355 @@
+GUÍA DE IMPLEMENTACIÓN - API DE LIKES Y COMENTARIOS PARA APP CONECTADA A UNSPLASH
+
+Esta guía explica cómo integrar la nueva API de likes y comentarios en tu aplicación existente que está conectada a Unsplash.
+
+## ESTRUCTURA DEL PROYECTO
+
+Se ha creado una nueva carpeta `src/likes-comments/` que sigue exactamente la misma sintaxis y estructura del proyecto actual:
+
+```
+src/likes-comments/
+├── entities/
+│   ├── like.entity.ts      # Entidad Like con TypeORM
+│   └── comment.entity.ts   # Entidad Comment con TypeORM
+├── dto/
+│   ├── create-like.dto.ts
+│   ├── update-like.dto.ts
+│   ├── create-comment.dto.ts
+│   └── update-comment.dto.ts
+├── likes-comments.controller.ts
+├── likes-comments.service.ts
+└── likes-comments.module.ts
+```
+
+## CONFIGURACIÓN DE BASE DE DATOS
+
+### 1. Instalar MySQL
+Asegúrate de tener MySQL instalado y ejecutándose en tu sistema.
+
+### 2. Crear la base de datos
+```sql
+CREATE DATABASE Instagram;
+```
+
+### 3. Configurar conexión MySQL
+En `src/app.module.ts` ya está configurada la conexión a MySQL junto con la conexión existente a MongoDB:
+
+```typescript
+TypeOrmModule.forRoot({
+    type: 'mysql',
+    host: 'localhost',
+    port: 3306,
+    username: 'root',
+    password: '',
+    database: 'Instagram',
+    entities: [Like, Comment],
+    synchronize: true,
+}),
+```
+
+**Nota:** Las entidades `Like` y `Comment` están importadas y registradas explícitamente en la configuración.
+
+**Nota:** Modifica las credenciales de MySQL según tu configuración local.
+
+## ENDPOINTS DISPONIBLES
+
+### LIKES
+
+#### Crear un like
+```
+POST /likes-comments/likes
+```
+Body:
+```json
+{
+  "user_id": "user123",
+  "photo_id": "photo456",
+  "estado": "Activo"
+}
+```
+
+#### Obtener todos los likes
+```
+GET /likes-comments/likes
+```
+
+#### Obtener like por ID
+```
+GET /likes-comments/likes/:id
+```
+
+#### Obtener likes por foto
+```
+GET /likes-comments/likes/photo/:photo_id
+```
+
+#### Obtener likes por usuario
+```
+GET /likes-comments/likes/user/:user_id
+```
+
+#### Actualizar like
+```
+PATCH /likes-comments/likes/:id
+```
+Body:
+```json
+{
+  "estado": "Inactivo"
+}
+```
+
+#### Eliminar like
+```
+DELETE /likes-comments/likes/:id
+```
+
+### COMENTARIOS
+
+#### Crear un comentario
+```
+POST /likes-comments/comments
+```
+Body:
+```json
+{
+  "user_id": "user123",
+  "photo_id": "photo456",
+  "comentario": "¡Hermosa foto!",
+  "estado": "Activo"
+}
+```
+
+#### Obtener todos los comentarios
+```
+GET /likes-comments/comments
+```
+
+#### Obtener comentario por ID
+```
+GET /likes-comments/comments/:id
+```
+
+#### Obtener comentarios por foto
+```
+GET /likes-comments/comments/photo/:photo_id
+```
+
+#### Obtener comentarios por usuario
+```
+GET /likes-comments/comments/user/:user_id
+```
+
+#### Actualizar comentario
+```
+PATCH /likes-comments/comments/:id
+```
+Body:
+```json
+{
+  "comentario": "¡Foto increíble!"
+}
+```
+
+#### Eliminar comentario
+```
+DELETE /likes-comments/comments/:id
+```
+
+## INTEGRACIÓN CON TU APP DE UNSPLASH
+
+### 1. Actualizar tu frontend
+
+Cuando muestres las fotos de Unsplash, agrega botones para likes y comentarios.
+
+#### Ejemplo de integración en React/Vue/Angular:
+
+```javascript
+// Al mostrar cada foto de Unsplash
+const PhotoCard = ({ photo }) => {
+  const [likes, setLikes] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [userLiked, setUserLiked] = useState(false);
+
+  // Cargar likes y comentarios al montar el componente
+  useEffect(() => {
+    loadLikes(photo.id);
+    loadComments(photo.id);
+    checkUserLike(photo.id);
+  }, [photo.id]);
+
+  const loadLikes = async (photoId) => {
+    try {
+      const response = await fetch(`/api/likes-comments/likes/photo/${photoId}`);
+      const data = await response.json();
+      setLikes(data);
+    } catch (error) {
+      console.error('Error cargando likes:', error);
+    }
+  };
+
+  const loadComments = async (photoId) => {
+    try {
+      const response = await fetch(`/api/likes-comments/comments/photo/${photoId}`);
+      const data = await response.json();
+      setComments(data);
+    } catch (error) {
+      console.error('Error cargando comentarios:', error);
+    }
+  };
+
+  const checkUserLike = async (photoId) => {
+    // Verificar si el usuario actual ya dio like
+    const userId = getCurrentUserId(); // Tu función para obtener el usuario actual
+    try {
+      const response = await fetch(`/api/likes-comments/likes/user/${userId}`);
+      const userLikes = await response.json();
+      const hasLiked = userLikes.some(like => like.photo_id === photoId);
+      setUserLiked(hasLiked);
+    } catch (error) {
+      console.error('Error verificando like del usuario:', error);
+    }
+  };
+
+  const handleLike = async () => {
+    const userId = getCurrentUserId();
+    try {
+      if (userLiked) {
+        // Remover like - necesitarías buscar el ID del like primero
+        const userLikes = await fetch(`/api/likes-comments/likes/user/${userId}`);
+        const likes = await userLikes.json();
+        const likeToRemove = likes.find(like => like.photo_id === photo.id);
+        if (likeToRemove) {
+          await fetch(`/api/likes-comments/likes/${likeToRemove.id}`, {
+            method: 'DELETE'
+          });
+        }
+      } else {
+        // Agregar like
+        await fetch('/api/likes-comments/likes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            photo_id: photo.id
+          })
+        });
+      }
+      // Recargar datos
+      loadLikes(photo.id);
+      checkUserLike(photo.id);
+    } catch (error) {
+      console.error('Error manejando like:', error);
+    }
+  };
+
+  const handleComment = async (commentText) => {
+    const userId = getCurrentUserId();
+    try {
+      await fetch('/api/likes-comments/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          photo_id: photo.id,
+          comentario: commentText
+        })
+      });
+      // Recargar comentarios
+      loadComments(photo.id);
+    } catch (error) {
+      console.error('Error agregando comentario:', error);
+    }
+  };
+
+  return (
+    <div className="photo-card">
+      <img src={photo.urls.regular} alt={photo.alt_description} />
+
+      <div className="interactions">
+        <button onClick={handleLike} className={userLiked ? 'liked' : ''}>
+          ❤️ {likes.length}
+        </button>
+
+        <div className="comments-section">
+          <h4>Comentarios ({comments.length})</h4>
+          {comments.map(comment => (
+            <div key={comment.id} className="comment">
+              <strong>{comment.user_id}:</strong> {comment.comentario}
+            </div>
+          ))}
+
+          {/* Formulario para nuevo comentario */}
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const commentText = e.target.comment.value;
+            if (commentText.trim()) {
+              handleComment(commentText);
+              e.target.comment.value = '';
+            }
+          }}>
+            <input
+              type="text"
+              name="comment"
+              placeholder="Escribe un comentario..."
+            />
+            <button type="submit">Comentar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+### 2. Consideraciones importantes
+
+#### Autenticación
+- Asegúrate de que los usuarios estén autenticados antes de permitir likes/comentarios
+- Implementa `getCurrentUserId()` según tu sistema de autenticación
+
+#### Gestión de estado
+- Mantén sincronizados los likes y comentarios en tiempo real si es necesario
+- Implementa WebSockets o polling para actualizar conteos en vivo
+
+#### Validación
+- Valida en el frontend que los campos requeridos no estén vacíos
+- Maneja errores de red y respuestas de error de la API
+
+#### Optimización
+- Implementa paginación para comentarios largos
+- Cachea likes/comentarios para mejor rendimiento
+- Considera lazy loading para secciones de comentarios
+
+### 3. Configuración del servidor
+
+Asegúrate de que tu servidor proxy las peticiones correctamente a la API de NestJS.
+
+#### Ejemplo con Express:
+```javascript
+app.use('/api', createProxyMiddleware({
+  target: 'http://localhost:3000', // Puerto donde corre NestJS
+  changeOrigin: true
+}));
+```
+
+## EJECUCIÓN
+
+1. Asegúrate de que MySQL esté ejecutándose
+2. Ejecuta la aplicación:
+```bash
+npm run start:dev
+```
+3. Las tablas `likes` y `comments` se crearán automáticamente gracias a `synchronize: true`
+
+## NOTAS FINALES
+
+- La API sigue exactamente la misma sintaxis y estructura que tu módulo de sensores
+- Utiliza TypeORM en lugar de Mongoose para la conexión con MySQL
+- Todas las validaciones y patrones de tu proyecto actual se mantienen
+- Los DTOs incluyen validación con class-validator igual que en el módulo sensor
+- La API es RESTful y sigue las mejores prácticas de NestJS
